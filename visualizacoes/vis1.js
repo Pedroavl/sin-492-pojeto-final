@@ -1,10 +1,11 @@
+document.addEventListener('DOMContentLoaded', function(e) {
 // set the dimensions and margins of the graph
 var margin = {top: 50, right: 150, bottom: 100, left: 100},
     width = 900 - margin.left - margin.right,
     height = 600 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
-var svg = d3.select("#vis1")
+var svg = d3.select(".vis1")
   .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -15,7 +16,7 @@ var svg = d3.select("#vis1")
 var color = { Gold: "#FFD700", Silver: "#C0C0C0", Bronze: "#CD7F32" };
 
 // Read the data
-d3.csv("./athlete_events.csv", function(data) {
+d3.csv("athlete_events.csv", function(data) {
 
   // Filtra os dados para incluir apenas registros com medalhas e agrupa por país e tipo de medalha
   var medalData = data.filter(d => d.Medal !== "NA");
@@ -113,5 +114,7 @@ d3.csv("./athlete_events.csv", function(data) {
     .attr("y", 13)
     .style("font-size", "12px")
     .text(d => d);
+
+});
 
 });
