@@ -22,10 +22,15 @@ document.addEventListener('DOMContentLoaded', function(e) {
             return { Team: team };
         });
 
+        // Remove duplicate Sports
+        var uniqueSports = Array.from(new Set(groupSports.map(d => d.Sport))).map(sport => {
+            return { Sport: sport };
+        });
+
         // add the options to the sports button
         d3.select("#selectSports")
             .selectAll('myOptions')
-            .data(groupSports.slice(0, 10))
+            .data(uniqueSports.slice(0, 20))
             .enter()
             .append('option')
             .text(function (d) { return d.Sport; }) // text showed in the menu
