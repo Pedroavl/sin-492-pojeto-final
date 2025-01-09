@@ -17,15 +17,14 @@ document.addEventListener('DOMContentLoaded', function(e) {
   d3.csv("athlete_events.csv", function(data) {
 
     var groupSports = data.filter(d => d.Sport !== "NA");
-    console.log(groupSports.slice(0, 10));
     // add the options to the button
     d3.select("#selectSports")
         .selectAll('myOptions')
-        .data(groupSports)
+        .data(groupSports.slice(0, 10))
         .enter()
         .append('option')
-        .text(function (d) { return d; }) // text showed in the menu
-        .attr("value", function (d) { return d; }) // corresponding value returned by the button
+        .text(function (d) { return d.Sport; }) // text showed in the menu
+        .attr("value", function (d) { return d.Sport; }) // corresponding value returned by the button
 
     // Add X axis --> it is a date format
     var x = d3.scaleLinear()
