@@ -22,8 +22,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             return { Team: team };
         });
 
-        console.log(uniqueTeams);
-
         // Remove duplicate Sports
         var uniqueSports = Array.from(new Set(groupSports.map(d => d.Sport))).map(sport => {
             return { Sport: sport };
@@ -47,78 +45,148 @@ document.addEventListener('DOMContentLoaded', function (e) {
             .text(function (d) { return d.Team; }) // text showed in the menu
             .attr("value", function (d) { return d.Team; }) // corresponding value returned by the button
 
+        // Define the exception cases: sports and gymnastics team events
+        const teamSports = ["Basketball", "Football", "Tug of War", "Ice Hockey", "Handball", "Water Polo"];
+        const gymnasticsTeamEvents = ["Gymnastics Women's Team All-Around", "Gymnastics Men's Team All-Around"];
+
         // Function to update the data based on selections
-        function updateSelectedData() {
+        function filterSelectedData() {
+            // Get selected sport and team from dropdowns
             var selectedSport = document.getElementById("selectSports").value;
             var selectedTeam = document.getElementById("selectTeams").value;
 
             // Check if both dropdowns have valid selections
             if (selectedSport && selectedTeam) {
-                // Filter data by selections and remove pre-1916 results (only 100 years of data)
+                // Filter the data based on the selected values and remove results before 1916
                 var filteredData = data.filter(d => d.Sport === selectedSport && d.Team === selectedTeam && d.Year >= 1916);
 
-                // Show only medalists athletes inside filtered data
+                // Show only medalist athletes inside filtered data
                 filteredData = filteredData.filter(d => d.Medal !== "NA");
+                console.log('Filtered medalist athletes:', filteredData);
 
-                // Counting the number of medals per athlete ordered by the year of the event
-                var medalCount = filteredData.reduce((acc, curr) => {
-                    if (!acc[curr.Name]) {
-                        acc[curr.Name] = {};
-                    }
-                    if (acc[curr.Name][curr.Year]) {
-                        acc[curr.Name][curr.Year]++;
-                    } else {
-                        acc[curr.Name][curr.Year] = 1;
-                    }
-                    return acc;
-                }, {});
-
-                // Transform the medalCount object into an array of entries and sort by year
-                var sortedMedalCount = [];
-                for (let athlete in medalCount) {
-                    for (let year in medalCount[athlete]) {
-                        sortedMedalCount.push({
-                            athlete: athlete,
-                            year: year,
-                            medals: medalCount[athlete][year]
-                        });
-                    }
-                }
-
-                sortedMedalCount.sort((a, b) => a.year - b.year);
-
-                // Store the sortedMedalCount as an array of objects
-                var medalData = sortedMedalCount.map(entry => ({
-                    athlete: entry.athlete,
-                    year: entry.year,
-                    medals: entry.medals
-                }));
-
-                console.log('Medalists data', medalData);
-
-                // Knowledge check
+                // Count the number of unique medalist athletes
                 var medalistAthletes = new Set(filteredData.map(d => d.Name));
-                var totalMedals = filteredData.length;
-                console.log(`${selectedTeam} has won ${totalMedals} total medals in ${selectedSport} with ${medalistAthletes.size} athletes`);
+                console.log(`${selectedTeam} has ${medalistAthletes.size} medalist athletes in ${selectedSport}`);
 
-                // Number of medals won by the selected country in the selected sport, grouped by year
-                var medalsByYear = filteredData.reduce((acc, curr) => {
-                    if (!acc[curr.Year]) {
-                        acc[curr.Year] = 0;
+                // Count the number of medals won by the selected country in the selected sport, grouped by year
+                var medalsByYear = {};
+                filteredData.forEach(d => {
+                    if (!medalsByYear[d.Year]) {
+                        medalsByYear[d.Year] = 0;
                     }
-                    acc[curr.Year]++;
-                    return acc;
-                }, {});
+                    if (teamSports.includes(selectedSport) || gymnasticsTeamEvents.includes(d.Event)) {
+                        if (medalsByYear[d.Year] === 0) {
+                            medalsByYear[d.Year] = 1;
+                        }
+                    } else {
+                        medalsByYear[d.Year]++;
+                    }
+                });
 
+                // Log the number of medals won by year
                 for (let year in medalsByYear) {
-                    console.log(`${medalsByYear[year]} medals in ${year}`);
+                    console.log(`${selectedTeam} has won ${medalsByYear[year]} medals in ${selectedSport} in ${year}`);
                 }
+
+                // Calculate the total number of medals won by the selected country in the selected sport
+                var totalMedals = 0;
+                if (teamSports.includes(selectedSport) || gymnasticsTeamEvents.includes(selectedSport)) {
+                    totalMedals = Object.keys(medalsByYear).length;
+                } else {
+                    totalMedals = filteredData.length;
+                }
+                console.log(`${selectedTeam} has won ${totalMedals} total medals in ${selectedSport}`);
+
+                // Prepare the final array for visualization
+                var medalsByYearForTeams = {};
+                var dataForVis1 = [];
+                var uniqueEntries = new Set();
+                var aggregatedMedals = {};
+
+                // Process filtered data to create the final array
+                filteredData.forEach(d => {
+                    if (teamSports.includes(selectedSport) || gymnasticsTeamEvents.includes(d.Event)) {
+                        // Handle team sports and gymnastics team events
+                        if (!medalsByYearForTeams[d.Year]) {
+                            medalsByYearForTeams[d.Year] = { men: false, women: false };
+                        }
+                        if (gymnasticsTeamEvents.includes(d.Event)) {
+                            if (d.Sex === "M" && !medalsByYearForTeams[d.Year].men) {
+                                medalsByYearForTeams[d.Year].men = true;
+                                console.log(`1 medal(s) from the gymnastics team of ${selectedTeam} in ${d.Year}`);
+                                dataForVis1.push({
+                                    year: d.Year,
+                                    medals: 1,
+                                    team: `${d.Year} ${selectedTeam} Men's Gymnastics Team`,
+                                    event: d.Event
+                                });
+                            } else if (d.Sex === "F" && !medalsByYearForTeams[d.Year].women) {
+                                medalsByYearForTeams[d.Year].women = true;
+                                console.log(`1 medal(s) from the gymnastics team of ${selectedTeam} in ${d.Year}`);
+                                dataForVis1.push({
+                                    year: d.Year,
+                                    medals: 1,
+                                    team: `${d.Year} ${selectedTeam} Women's Gymnastics Team`,
+                                    event: d.Event
+                                });
+                            }
+                        } else {
+                            if (d.Sex === "M" && !medalsByYearForTeams[d.Year].men) {
+                                medalsByYearForTeams[d.Year].men = true;
+                                console.log(`1 medal(s) from the ${selectedSport} team of ${selectedTeam} in ${d.Year}`);
+                                dataForVis1.push({
+                                    year: d.Year,
+                                    medals: 1,
+                                    team: `${d.Year} ${selectedTeam} Men's ${selectedSport} Team`,
+                                    event: d.Event
+                                });
+                            } else if (d.Sex === "F" && !medalsByYearForTeams[d.Year].women) {
+                                medalsByYearForTeams[d.Year].women = true;
+                                console.log(`1 medal(s) from the ${selectedSport} team of ${selectedTeam} in ${d.Year}`);
+                                dataForVis1.push({
+                                    year: d.Year,
+                                    medals: 1,
+                                    team: `${d.Year} ${selectedTeam} Women's ${selectedSport} Team`,
+                                    event: d.Event
+                                });
+                            }
+                        }
+                    } else {
+                        // Handle individual sports
+                        const entryKey = `${d.Name}-${d.Year}`;
+                        if (!aggregatedMedals[entryKey]) {
+                            aggregatedMedals[entryKey] = {
+                                year: d.Year,
+                                medals: 0,
+                                team: d.Name,
+                                event: d.Event
+                            };
+                        }
+                        aggregatedMedals[entryKey].medals += 1;
+                    }
+                });
+
+                // Add aggregated individual medals to the final array
+                Object.values(aggregatedMedals).forEach(entry => {
+                    dataForVis1.push({
+                        year: entry.year,
+                        medals: entry.medals,
+                        team: entry.team,
+                        event: entry.event
+                    });
+                });
+
+                // Sort dataForVis1 by year (oldest first)
+                dataForVis1.sort((a, b) => a.year - b.year);
+
+                // Final array for visualization
+                console.log('dataForVis1:', dataForVis1);
             }
         }
 
         // Add event listeners to the dropdowns
-        document.getElementById("selectSports").addEventListener("change", updateSelectedData);
-        document.getElementById("selectTeams").addEventListener("change", updateSelectedData);
+        document.getElementById("selectSports").addEventListener("change", filterSelectedData);
+        document.getElementById("selectTeams").addEventListener("change", filterSelectedData);
 
         // Add X axis --> it is a date format
         var x = d3.scaleLinear()
