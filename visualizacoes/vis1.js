@@ -5,12 +5,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         height = 400 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    var svg = d3.select("#vis1")
+    var svg = d3.select(".vis1")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var x = d3.scaleLinear().range([0, width]);
+    var y = d3.scaleLinear().range([height, 0]);
+
+    var line, dots;
 
     // Read the data
     d3.csv("athlete_events.csv", function (data) {
@@ -176,89 +181,76 @@ document.addEventListener('DOMContentLoaded', function (e) {
                     });
                 });
 
-                // Sort dataForVis1 by year (oldest first)
-                dataForVis1.sort((a, b) => a.year - b.year);
+                
 
                 // Final array for visualization
                 console.log('dataForVis1:', dataForVis1);
+
+                // Sort dataForVis1 by year (oldest first)
+                dataForVis1.sort((a, b) => a.year - b.year);
+
+                x.domain(d3.extent(dataForVis1, d => d.year));
+                y.domain([0, d3.max(dataForVis1, d => d.medals)]);
+
+                svg.selectAll(".x-axis").remove();
+                svg.selectAll(".y-axis").remove();
+
+                svg.append("g")
+                    .attr("class", "x-axis")
+                    .attr("transform", `translate(0,${height})`)
+                    .call(d3.axisBottom(x));
+
+                svg.append("g")
+                    .attr("class", "y-axis")
+                    .call(d3.axisLeft(y));
+
+                if (!line) {
+                    line = svg.append("path")
+                        .attr("class", "line")
+                        .style("stroke", "black")
+                        .style("stroke-width", 2)
+                        .style("fill", "none");
+                }
+
+                line.datum(dataForVis1)
+                    .transition()
+                    .duration(1500)
+                    .attr("d", d3.line()
+                        .x(d => x(d.year))
+                        .y(d => y(d.medals)));
+
+                if (!dots) {
+                    dots = svg.selectAll("circle")
+                        .data(dataForVis1)
+                        .enter()
+                        .append("circle")
+                        .attr("r", 5)
+                        .style("fill", "#69b3a2");
+                }
+
+                dots = svg.selectAll("circle")
+                    .data(dataForVis1);
+
+                dots.enter()
+                    .append("circle")
+                    .merge(dots)
+                    .transition()
+                    .duration(1550)
+                    .attr("cx", d => x(d.year))
+                    .attr("cy", d => y(d.medals))
+                    .attr("r", 5)
+                    .style("fill", "#69b3a2");
+
+                dots.exit()
+                .remove()
+                .transition()
+                .duration(1000);
             }
         }
 
         // Add event listeners to the dropdowns
         document.getElementById("selectSports").addEventListener("change", filterSelectedData);
         document.getElementById("selectTeams").addEventListener("change", filterSelectedData);
-
-        // Add X axis --> it is a date format
-        var x = d3.scaleLinear()
-            .domain([0, 10])
-            .range([0, width]);
-        svg.append("g")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x));
-
-        // Add Y axis
-        var y = d3.scaleLinear()
-            .domain([0, 20])
-            .range([height, 0]);
-        svg.append("g")
-            .call(d3.axisLeft(y));
-
-        // Initialize line with group a
-        var line = svg
-            .append('g')
-            .append("path")
-            .datum(data)
-            .attr("d", d3.line()
-                .x(function (d) { return x(+d.time) })
-                .y(function (d) { return y(+d.valueA) })
-            )
-            .attr("stroke", "black")
-            .style("stroke-width", 4)
-            .style("fill", "none");
-
-        // Initialize dots with group a
-        var dot = svg
-            .selectAll('circle')
-            .data(data)
-            .enter()
-            .append('circle')
-            .attr("cx", function (d) { return x(+d.time) })
-            .attr("cy", function (d) { return y(+d.valueA) })
-            .attr("r", 7)
-            .style("fill", "#69b3a2");
-
-        // A function that updates the chart
-        function update(selectedGroup) {
-
-            // Create new data with the selection?
-            var dataFilter = data.map(function (d) { return { time: d.time, value: d[selectedGroup] }; });
-
-            // Give these new data to update line
-            line
-                .datum(dataFilter)
-                .transition()
-                .duration(1000)
-                .attr("d", d3.line()
-                    .x(function (d) { return x(+d.time); })
-                    .y(function (d) { return y(+d.value); })
-                );
-
-            // Update dots with new data
-            dot
-                .data(dataFilter)
-                .transition()
-                .duration(1000)
-                .attr("cx", function (d) { return x(+d.time); })
-                .attr("cy", function (d) { return y(+d.value); });
-        }
-
-        // When the button is changed, run the updateChart function
-        d3.select("#selectButton").on("change", function (d) {
-            // recover the option that has been chosen
-            var selectedOption = d3.select(this).property("value");
-            // run the updateChart function with this selected option
-            update(selectedOption);
-        });
 
     });
 });
