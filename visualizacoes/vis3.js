@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Seleciona o contêiner e cria elementos básicos
-    var container = d3.select(".vi3");
+    var container = d3.select(".vis3");
     container.append("h2").text("Total de Atletas x Medalhas por País");
 
     // Adiciona o título dinâmico do ano
